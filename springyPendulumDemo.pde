@@ -58,7 +58,7 @@ color backgroundColor, backgroundFading, textColor;
 float springLength, springLengthVelocity, springLengthAcceleration;
 float springAngle,  springAngleVelocity,  springAngleAcceleration;
 
-float gravityConstant, springConstant, springLengthRest, springLengthEquilibrium, massConstant, timeConstant, zoomFactor;
+float gravityConstant, springConstant, springLengthRest, springLengthEquilibrium, massConstant, frictionConstant, timeConstant, zoomFactor;
 
 float textOffsetx, textOffsety, textPositionx;
 PGraphics screen;
@@ -70,17 +70,19 @@ String modeCurrent;
 
 void setup(){
   gravityConstant      = 981;
-  massConstant         = 0.5;
-  timeConstant         = 1e-5;
-  springConstant       = 100;
-  springLengthRest     = 1000;
+  massConstant         = 60 * 1e-3;
+  springConstant       = 60 * 1e4;
+  springLengthRest     = 55.5;
+  frictionConstant     = 1;
   zoomFactor           = 1;
+  
+  timeConstant         = 1e-5;
   
   springLengthEquilibrium
                        = springLengthRest + (gravityConstant * massConstant) / springConstant;
   
   applyPalette("ZEROSANDEFFS");
-  backgroundFading     = 127;
+  backgroundFading     = 63;
   
   textOffsetx          = 20;
   textOffsety          = 16;
@@ -108,6 +110,7 @@ void setup(){
   pause  = 0;
   
   textPositionx = width / 2 + textOffsetx;
+  frameRate(59);
   background(backgroundColor);
 }
 
@@ -115,7 +118,7 @@ void draw(){
   if(update == 1){
     updateEnergy();
     
-    for(int i = 0; i < (int)((1 / timeConstant) / 60); i++){  
+    for(int i = 0; i < (int)((1 / timeConstant) / frameRate); i++){  
       if(springLength < springLengthRest){
         if(modeCurrent != "FREEFALL")
           modeCurrent = "FREEFALL";
@@ -140,7 +143,7 @@ void keyPressed(){
     case 'M' :
       resetPositionTo("MOUSE");
       updateEnergy();
-      // update = 0;
+      update = 0;
       break;
     case 'p' :
     case 'P' :
@@ -150,7 +153,7 @@ void keyPressed(){
     case 'E' :
       resetPositionTo("EQUILIBRIUM");
       updateEnergy();  
-      // update = 0;
+      update = 0;
       break;
     case '+' :
       if(mouseX < width / 2)
@@ -203,7 +206,9 @@ void updateEnergy(){
   energyKinetic = 
    .5 * massConstant * sq(springLengthVelocity) + .5 * massConstant * sq(springAngleVelocity * springLength);
   energyPotential =
-    massConstant * gravityConstant * (pivotCoordy - massCoordy) + .5 * springConstant * sq(springLength - springLengthRest);
+    massConstant * gravityConstant * (pivotCoordy - massCoordy);
+  if(modeCurrent == "ELASTIC")
+    energyPotential += .5 * springConstant * sq(springLength - springLengthRest);
   energyMeccanic =
     energyKinetic + energyPotential;
 }
@@ -254,6 +259,9 @@ void updateDynamics(){
     default :
       break;
   }
+  
+  springLengthAcceleration  -= frictionConstant * springLengthVelocity; 
+  // springAngleAcceleration   -= frictionConstant * springAngleVelocity;
   
   springLengthVelocity      =
     springLengthVelocity + springLengthAcceleration * timeConstant;
@@ -315,23 +323,22 @@ void drawPendulum(){
   screen.rect(0, 0, width / 2, height);
   
   screen.stroke(springColor, 255);
-  screen.strokeWeight(massRadius / 10 * sqrt(zoomFactor));
+  screen.strokeWeight(massRadius / 10);
   screen.fill(springColor, 255);
   screen.line(pivotCoordx, pivotCoordy, massVirtualx, massVirtualy);
   
   screen.stroke(springColor, 255);
   screen.fill(springColor, 0);
-  screen.strokeWeight(massRadius / 10 * sqrt(zoomFactor));
+  screen.strokeWeight(massRadius / 10);
   screen.arc(pivotCoordx, pivotCoordy, 2 * springLengthRest * zoomFactor, 2 * springLengthRest * zoomFactor, - TAU, - PI);
-  screen.arc(pivotCoordx, pivotCoordy, 2 * springLengthEquilibrium * zoomFactor, 2 * springLengthEquilibrium * zoomFactor, - TAU, - PI);
   
   screen.stroke(springColor, 0);
   screen.fill(massColor, 255);
-  screen.circle(massVirtualx, massVirtualy, massRadius * sqrt(zoomFactor));
+  screen.circle(massVirtualx, massVirtualy, massRadius);
   
   screen.stroke(springColor, 255);
   screen.fill(pivotColor, 255);
-  screen.circle(pivotCoordx, pivotCoordy, pivotRadius * sqrt(zoomFactor));
+  screen.circle(pivotCoordx, pivotCoordy, pivotRadius);
   
   screen.endDraw();
   
@@ -382,25 +389,27 @@ void drawInfo(){
   
   screen.text("Energia cinetica [J] = "
     + (energyKinetic * 1e-4),
-    textPositionx, 11 * textOffsety
+    textPositionx, 12 * textOffsety
   );
   screen.text("Energia potenziale [J] = "
     + (energyPotential * 1e-4),
-    textPositionx, 12 * textOffsety
+    textPositionx, 13 * textOffsety
   );
   screen.text("Energia meccanica [J] = "
     + (energyMeccanic * 1e-4),
-    textPositionx, 13 * textOffsety
+    textPositionx, 14 * textOffsety
   );
   
   // Stampo sullo schermo i parametri costanti
   screen.text("Accelerazione di gravità [cm/s2] = " + gravityConstant,
-    textPositionx, height - 6 * textOffsety);
+    textPositionx, height - 7 * textOffsety);
   screen.text("Lunghezza a riposo [cm] = " + springLengthRest,
-    textPositionx, height - 5 * textOffsety);
+    textPositionx, height - 6 * textOffsety);
   screen.text("Costante di elasticità [N/cm] = " + springConstant,
-    textPositionx, height - 4 * textOffsety);
+    textPositionx, height - 5 * textOffsety);
   screen.text("Massa [kg] = " + massConstant,
+    textPositionx, height - 4 * textOffsety);
+  screen.text("Coefficiente di attrito [kg*cm/s] = " + frictionConstant,
     textPositionx, height - 3 * textOffsety);
   screen.text("Velocità di simulazione [s] = " + timeConstant,
     textPositionx, height - 2 * textOffsety);
