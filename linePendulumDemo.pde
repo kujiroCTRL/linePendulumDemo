@@ -1,97 +1,81 @@
-// Autore
-// Lorenzo Casavecchia <lnzcsv@gmail.com>
+float massCoordy,
+      massCoordx,
+      massVirtualx,
+      massVirtualy,
+      massRadius,
+      pivotCoordx,
+      pivotCoordy,
+      pivotRadius;
 
-// Descrizione
-// `springyPendulumDemo.pde` consiste in una semplice simulazione di un pendolo
-// elastico, cioè una massa soggetta alla forza di gravità vincolata da una molla
-// collegata ad essa e ad un pivot
-// 
-// Ad esecuzione verrà aperta una finestra a schermo intero divisa in 2:
-//     - a sinistra è disegnato il sistema in evoluzione
-//     - a destra sono riportati i valori dei parametri costanti e variabili nel
-//       tempo del sistema
-// 
-// La simulazione è stata implementata considerando il bilancio delle forze al
-// centro di massa, quindi le componenti radiale e tangenziale delle forze
-// applicate
-// 
-// Dal valore della forza è possibile ricavarne l'accelerazione radiale ed angolare
-// quindi anche le velocità radiale e angolare (ricordando che l'accelerazione è
-// la variazione della velocità nel tempo)
-// 
-// Similmente vengono calcolati i valori del raggio e l'angolo della molla rispetto
-// la verticale (ricordando che la velocità è la variazione della posizione o dell'angolo
-// nel tempo)
-// 
-// Nel caso in cui la distanza superi un valore fisso (`springLengthMaximum`)
-// le componenti radiali della velocità e accelerazione verranno annullati,
-// di fatto rendendo il sistema un pendolo semplice
-// 
-// La funzione `setup` viene eseguita una sola volta all'inizio dell'esecuzione ed è
-// responsabile di impostare i valori base dei parametri
-// La funzione `draw` viene eseguita 60 volte in un secondo ed è responsabile dei calcoli
-// e della grafica
-// 
-// E' importante osservare che la grafica (la visualizzazione del sistema e dei parametri)
-// viene gestita prima del calcolo dei parametri
-// La funzione `mousePressed` gestisce tutte le interazioni con l'utente attualmente previste
-// 
-// Premendo i seguenti tasti è possibile modificare la simulazione:
-//     - 'q' e 'Q' chiudono la simulazione
-//     - 'm' e 'M' muove la massa alla posizione del cursore
-//     - 'e' e 'E' muove la massa alla posizione d'equilibrio
-//     - 'p' e 'P' mettono in pausa la simulazione
-//     - '+' e '-' aumentano e diminuiscono il fattore di ingrandimento
-//     del disegno o del testo a seconda della posizione del mouse
+float energyKinetic,
+      energyPotential,
+      energyMeccanic;
 
-float massCoordy,  massCoordx,  massRadius;
-float pivotCoordx, pivotCoordy, pivotRadius;
+color massColor,
+      pivotColor,
+      springColor,
+      backgroundColor,
+      textColor,
+      forceColor1,
+      forceColor2,
+      forceColor3;
+int   backgroundFading;
 
-float massVirtualx, massVirtualy;
+float springLength,
+      springLengthVelocity,
+      springLengthAcceleration,
+      springAngle,
+      springAngleVelocity,
+      springAngleAcceleration;
 
-float energyKinetic, energyPotential, energyMeccanic;
+float gravityConstant,
+      springConstant,
+      springLengthRest,
+      springLengthEquilibrium,
+      massConstant,
+      frictionLengthConstant,
+      frictionAngleConstant,
+      timeConstant,
+      zoomFactor;
 
-color massColor, pivotColor, springColor;
-
-color backgroundColor, backgroundFading, textColor;
-
-float springLength, springLengthVelocity, springLengthAcceleration;
-float springAngle,  springAngleVelocity,  springAngleAcceleration;
-
-float gravityConstant, springConstant, springLengthRest, springLengthEquilibrium, massConstant, frictionConstant, timeConstant, zoomFactor;
-
-float textOffsetx, textOffsety, textPositionx;
 PGraphics screen;
+PrintWriter logFile;
 PFont textFont;
 
-int update, pause;
+int update,
+    pause,
+    screenshotIndex,
+    logBegin,
+    displayForces;
 
 String modeCurrent;
 
 void setup(){
   gravityConstant      = 981;
   massConstant         = 60 * 1e-3;
-  springConstant       = 60 * 1e4;
+  springConstant       = 40;
   springLengthRest     = 55.5;
-  frictionConstant     = 1;
-  zoomFactor           = 1;
+  frictionLengthConstant
+                       = 1;
+  frictionAngleConstant
+                       = .05;
+  zoomFactor           = 10;
   
   timeConstant         = 1e-5;
   
   springLengthEquilibrium
                        = springLengthRest + (gravityConstant * massConstant) / springConstant;
   
-  applyPalette("ZEROSANDEFFS");
-  backgroundFading     = 63;
+  backgroundFading     = 255;
+ 
+  applyPalette("EFFSANDZEROS");
   
-  textOffsetx          = 20;
-  textOffsety          = 16;
-  
-  pivotCoordx          = displayWidth / 4;
-  pivotCoordy          = displayHeight / 4;
+  pivotCoordx          = width / 2;
+  pivotCoordy          = height / 4;
   pivotRadius          = 20;
   
   resetPositionTo("EQUILIBRIUM");
+  logBegin = 0;
   
   energyKinetic        = 0;
   energyPotential      = 0;
@@ -99,19 +83,20 @@ void setup(){
   
   modeCurrent = "ELASTIC";
   
-  massRadius           = 20;
+  massRadius           = 10;
   
-  textFont = createFont("Tlwg Typo Bold", textOffsety);
-  
-  fullScreen();
-  screen = createGraphics(width, height);
-   
-  update = 1;
-  pause  = 0;
-  
-  textPositionx = width / 2 + textOffsetx;
-  frameRate(59);
+  size(640, 640);
   background(backgroundColor);
+  
+  screen = createGraphics(width, height);
+  logFile = createWriter("pendulumData.csv");
+  logFile.println("Time,Angle,AngleVelocity,AngleAcceleration,Length,LengthVelocity,LengthAcceleration"); 
+  
+  update              = 1;
+  pause               = 0;
+  screenshotIndex     = 1;
+  logBegin            = 0;
+  displayForces       = 0;
 }
 
 void draw(){  
@@ -130,67 +115,93 @@ void draw(){
   }
   
   drawPendulum();
-  drawInfo();
+  if(logBegin == 1)
+    printInfo();
 }
 
 void keyPressed(){
   switch(key){
+    // Termino
     case 'q' :
     case 'Q' :
       exit();
+      logFile.flush();
+      logFile.close();
       break;
+    
+    // Imposto la posizione del centro di massa a quella del mouse 
     case 'm' :
     case 'M' :
       resetPositionTo("MOUSE");
       updateEnergy();
+      logBegin = 1;
       update = 0;
+      logFile.close();
+      logFile = createWriter("pendulumData.csv");
+      logFile.println("Angle,AngleVelocity,AngleAcceleration,Length,LengthVelocity,LengthAcceleration");
       break;
-    case 'p' :
-    case 'P' :
-      pause = 1 - pause;
-      break;
+    
+    // Imposto la posizione del centro di massa all'equilibrio
     case 'e' :
     case 'E' :
       resetPositionTo("EQUILIBRIUM");
-      updateEnergy();  
+      updateEnergy();
+      logBegin = 0;
+      logFile.flush();
+      logFile.close();
       update = 0;
       break;
+    
+    // Fermo la simulazione
+    case 'p' :
+    case 'P' :
+      pause = 1 - pause;
+      logBegin = 1 - pause;
+      break;
+    
+    // Aumento il fattore di ingrandimento
     case '+' :
-      if(mouseX < width / 2)
-        zoomFactor *= 2;
-      else
-        textOffsety += 2;
+      zoomFactor *= 2;
       break;
+    
+    // Diminuisco il fattore di ingrandimento
     case '-' :
-      if(mouseX < width / 2)
-        zoomFactor /= 2;
-      else
-        textOffsety -= 2;
+      zoomFactor /= 2;
       break;
+    
+    // Applico uno schema di colori nero e bianco
     case 'b' :
       applyPalette("ZEROSANDEFFS");
       break;
+    
+    // Applico uno schema di colori bianco e nero
     case 'B' :
       applyPalette("EFFSANDZEROS");
       break;
+    
+    // Applico uno schema di colori chiaro casuale
     case 'r' :
       applyPalette("STRAVAGANZALIGHT");
       break;
+    
+    // Applico uno schema di colori scuro casuale
     case 'R' :
       applyPalette("STRAVAGANZADARK");
       break;
-    case '0' :
-      modeCurrent = "NONE";
+    
+    // Salvo la scena come immagine
+    case 's' :
+    case 'S' :
+      screen.save("pendulumScreenshot" + screenshotIndex + ".png");
+      ++screenshotIndex;
       break;
-    case '1' :
-      modeCurrent = "FREEFALL";
-      break;
-    case '2' :
-      modeCurrent = "ELASTIC";
-      break;
-    case '3' :
-      modeCurrent = "TENSION";
-      break;
+    
+    // Mostro o nascondo le forze sulla massa
+    case 'h' :
+    case 'H' :
+        displayForces = 1 - displayForces;
+        break;
+
     default :
       update = 1;
   }
@@ -207,18 +218,20 @@ void updateEnergy(){
    .5 * massConstant * sq(springLengthVelocity) + .5 * massConstant * sq(springAngleVelocity * springLength);
   energyPotential =
     massConstant * gravityConstant * (pivotCoordy - massCoordy);
+  
   if(modeCurrent == "ELASTIC")
     energyPotential += .5 * springConstant * sq(springLength - springLengthRest);
+  
   energyMeccanic =
     energyKinetic + energyPotential;
 }
 
 void updateDynamics(){
-  // Calcolo i nuovi valori dell'angolo rispetto la verticale e la lunghezza della molla
   if(pause == 1)
     modeCurrent = "NONE";
     
   switch(modeCurrent){
+    // In elasticità l'accelerazione radiale è data dalla legge di Hook per le forze elastiche
     case "ELASTIC" : 
       springAngleAcceleration   =
         - (gravityConstant / springLength) * sin(springAngle)
@@ -232,6 +245,8 @@ void updateDynamics(){
       springLengthEquilibrium   =
         springLengthRest + (gravityConstant * massConstant) / springConstant;
       break;
+
+    // In tensione l'accelerazione radiale è nulla in quanto la lenza è inestensibile
     case "TENSION" : 
       springAngleAcceleration  =
         - (gravityConstant / springLength) * sin(springAngle)
@@ -243,6 +258,8 @@ void updateDynamics(){
       springLengthEquilibrium   =
         springLengthRest + (gravityConstant * massConstant) / springConstant;
       break;
+    
+    // In caduta libera è presente solo la forza di gravità che punta verso il basso
     case "FREEFALL" :
       springAngleAcceleration  =
         - (gravityConstant / springLength) * sin(springAngle)
@@ -260,17 +277,19 @@ void updateDynamics(){
       break;
   }
   
-  springLengthAcceleration  -= frictionConstant * springLengthVelocity; 
-  // springAngleAcceleration   -= frictionConstant * springAngleVelocity;
+  // Aggiungo dei termini dissipativi per le accelerazioni
+  springLengthAcceleration -= frictionLengthConstant * springLengthVelocity; 
+  springAngleAcceleration  -= frictionAngleConstant  * springAngleVelocity;
   
-  springLengthVelocity      =
+  springLengthVelocity =
     springLengthVelocity + springLengthAcceleration * timeConstant;
-  springAngleVelocity       =
+  springAngleVelocity =
     springAngleVelocity + springAngleAcceleration * timeConstant;
   
-  springAngle               =
+  // Aggiorno l'angolo della lenza
+  springAngle =
     springAngle + springAngleVelocity * timeConstant;
-  springLength              =
+  springLength =
     springLength + springLengthVelocity * timeConstant;
   
   // Aggiorno la posizione del centro di massa
@@ -278,18 +297,19 @@ void updateDynamics(){
     pivotCoordx + springLength * sin(springAngle);
   massCoordy =
     pivotCoordy + springLength * cos(springAngle);
-    
+  
+  // Aggiorno la posizione del centro di massa relativa alla finestra  
+  if(massVirtualx > width || massVirtualy > height || massVirtualx < 0 || massVirtualy < 0)
+    zoomFactor /= 2;
+  
   massVirtualx = (massCoordx - pivotCoordx) * zoomFactor + pivotCoordx;
   massVirtualy = (massCoordy - pivotCoordy) * zoomFactor + pivotCoordy;
-  
-  if(massVirtualx > width /2 || massVirtualy > height || massVirtualx < 0 || massVirtualy < 0)
-    zoomFactor /= 2;
 }
 
 void resetPositionTo(String string){
   switch(string){
     case "MOUSE" :
-      massCoordx = min((mouseX - pivotCoordx) / zoomFactor + pivotCoordx, width / 2);
+      massCoordx = min((mouseX - pivotCoordx) / zoomFactor + pivotCoordx, width);
       massCoordy = (mouseY - pivotCoordy) / zoomFactor + pivotCoordy;
       
       break;
@@ -316,108 +336,70 @@ void resetPositionTo(String string){
 }
 
 void drawPendulum(){
-  // Disegno la molla, il pivot e la massa
+  // Disegno lo sfondo
   screen.beginDraw();
   screen.fill(backgroundColor, backgroundFading);
   screen.stroke(backgroundColor, 255);
-  screen.rect(0, 0, width / 2, height);
+  screen.rect(0, 0, width, height);
   
+  // Disegno la lenza
   screen.stroke(springColor, 255);
   screen.strokeWeight(massRadius / 10);
   screen.fill(springColor, 255);
   screen.line(pivotCoordx, pivotCoordy, massVirtualx, massVirtualy);
   
+  // Disegno un arco con raggio pari alla lunghezza di riposo della lenza
   screen.stroke(springColor, 255);
   screen.fill(springColor, 0);
   screen.strokeWeight(massRadius / 10);
   screen.arc(pivotCoordx, pivotCoordy, 2 * springLengthRest * zoomFactor, 2 * springLengthRest * zoomFactor, - TAU, - PI);
   
+  // Disegno la massa
   screen.stroke(springColor, 0);
   screen.fill(massColor, 255);
   screen.circle(massVirtualx, massVirtualy, massRadius);
   
+  // Disegno il pivot
   screen.stroke(springColor, 255);
   screen.fill(pivotColor, 255);
   screen.circle(pivotCoordx, pivotCoordy, pivotRadius);
+  
+  if(displayForces == 1){
+      // Disegno il vettore della forza di gravità
+      screen.stroke(forceColor1);
+      screen.line(massVirtualx, massVirtualy,
+        massVirtualx, massVirtualy + zoomFactor * massConstant * gravityConstant
+      );
+     
+      // Disegno il vettore della tensione (se presente) 
+      if((modeCurrent == "NONE" && springLength >= springLengthRest) || (modeCurrent != "FREEFALL" && modeCurrent != "NONE")){
+        screen.stroke(forceColor2);
+        screen.line(massVirtualx, massVirtualy,
+          massVirtualx - zoomFactor / springLength * springConstant * (massCoordx - pivotCoordx), massVirtualy - zoomFactor / springLength * springConstant * (massCoordy - pivotCoordy)
+        );
+      
+      // Disegno il vettore dell'attrito
+      }
+  }
   
   screen.endDraw();
   
   image(screen, 0, 0);
 }
 
-void drawInfo(){
-// Stampo sullo schermo i parametri del sistema
-  screen.beginDraw();
-  
-  screen.textFont(textFont);
-  screen.textSize(textOffsety);
-  
-  screen.fill(backgroundColor, 255);
-  screen.stroke(backgroundColor, 255);
-  screen.rect(width / 2, 0, width, height);
-  
-  screen.fill(textColor, 255);
-  
-  // Stampo sullo schermo i parametri variabili
-  textPositionx = width / 2 + textOffsetx;
-  screen.text("Angolo [°] = "
-    + degrees(springAngle),
-    textPositionx, textOffsety);
-  screen.text("Velocità angolare [°/s] = "
-    + degrees(springAngleVelocity),  
-    textPositionx, 2 * textOffsety);
-  screen.text("Accelerazione angolare [°/s2] = "
-    + degrees(springAngleAcceleration),
-    textPositionx, 3 * textOffsety);
-  
-  screen.text("Raggio [cm] = "
-    + springLength,
-    textPositionx, 5 * textOffsety);
-  screen.text("Velocità radiale [cm/s] = "
-    + springLengthVelocity,
-    textPositionx, 6 * textOffsety);
-  screen.text("Accelerazione radiale [cm/s2] = "
-    + springLengthAcceleration,
-    textPositionx, 7 * textOffsety);
-  
-  screen.text("Discostamento orizzontale [cm] = "
-    + (massCoordx - pivotCoordx),
-    textPositionx, 9 * textOffsety);
-  screen.text("Discostamento verticale [cm] = "
-    + (massCoordy - pivotCoordy), textPositionx,
-    10 * textOffsety);
-  
-  screen.text("Energia cinetica [J] = "
-    + (energyKinetic * 1e-4),
-    textPositionx, 12 * textOffsety
+void printInfo(){
+  // Scrivo su file i parametri variabili del sistema
+  logFile.println(
+    millis() + "," +
+    degrees(springAngle) + "," +
+    degrees(springAngleVelocity) + "," +
+    degrees(springAngleAcceleration) + "," +
+    springLength + "," +
+    springLengthVelocity + "," +
+    springLengthAcceleration + "," +
+    (energyKinetic * 1e-4) + "," + 
+    (energyPotential * 1e-4)
   );
-  screen.text("Energia potenziale [J] = "
-    + (energyPotential * 1e-4),
-    textPositionx, 13 * textOffsety
-  );
-  screen.text("Energia meccanica [J] = "
-    + (energyMeccanic * 1e-4),
-    textPositionx, 14 * textOffsety
-  );
-  
-  // Stampo sullo schermo i parametri costanti
-  screen.text("Accelerazione di gravità [cm/s2] = " + gravityConstant,
-    textPositionx, height - 7 * textOffsety);
-  screen.text("Lunghezza a riposo [cm] = " + springLengthRest,
-    textPositionx, height - 6 * textOffsety);
-  screen.text("Costante di elasticità [N/cm] = " + springConstant,
-    textPositionx, height - 5 * textOffsety);
-  screen.text("Massa [kg] = " + massConstant,
-    textPositionx, height - 4 * textOffsety);
-  screen.text("Coefficiente di attrito [kg*cm/s] = " + frictionConstant,
-    textPositionx, height - 3 * textOffsety);
-  screen.text("Velocità di simulazione [s] = " + timeConstant,
-    textPositionx, height - 2 * textOffsety);
-  screen.text("Zoom [%] = " + ((zoomFactor - 1) * 100),
-    textPositionx, height - textOffsety);  
-  screen.endDraw();
-  
-  image(screen, 0, 0);
 }
 
 void applyPalette(String paletteName){
@@ -428,7 +410,10 @@ void applyPalette(String paletteName){
       massColor            = randomColorLuminance(255);
       backgroundColor      = randomColorLuminance(31);
       textColor            = randomColorLuminance(255);
-      
+      forceColor1          = randomColorLuminance(63);
+      forceColor2          = randomColorLuminance(63);
+      forceColor3          = randomColorLuminance(63);
+
       break;
     case "STRAVAGANZADARK" :
       springColor          = randomColorLuminance(31);
@@ -436,7 +421,10 @@ void applyPalette(String paletteName){
       massColor            = randomColorLuminance(15);
       backgroundColor      = randomColorLuminance(127);
       textColor            = randomColorLuminance(15);
-      
+      forceColor1          = randomColorLuminance(63);
+      forceColor2          = randomColorLuminance(63);
+      forceColor3          = randomColorLuminance(63);      
+
       break;
     case "EFFSANDZEROS" :
       springColor          = 127;
@@ -444,7 +432,10 @@ void applyPalette(String paletteName){
       massColor            = 0;
       backgroundColor      = 255;
       textColor            = 0;
-      
+      forceColor1          = 63;
+      forceColor2          = 63;
+      forceColor3          = 63;  
+    
       break;
     case "ZEROSANDEFFS" :
     default :  
@@ -453,7 +444,11 @@ void applyPalette(String paletteName){
       massColor            = 255;
       backgroundColor      = 0;
       textColor            = 255;
-      
+      forceColor1          = 63;  
+      forceColor2          = 63;  
+      forceColor3          = 63;  
+
+        
       break;
   }
 }
