@@ -73,11 +73,11 @@ $$
 	 a_r(t+1)
  		&= g \cos\theta(t)
    		+ k v_\theta(t) ^ 2
+        - b_r v_r(t) 
  		+ \begin{cases}
    			0 &  r(t) \lt R \\
    			- \frac k m (r(t) - R) & r(t) \geq R
-      		\end{cases}
-		- b_r v_r(t) \\
+      		\end{cases} \\
 	a_\theta(t+1)
   		&= -\frac{g}{r(t)} \sin\theta(t)
     		- \frac 2{r(t)} v_r(t) v_\theta(t)

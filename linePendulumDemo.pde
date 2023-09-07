@@ -403,9 +403,7 @@ void printInfo(){
     degrees(springAngleAcceleration) + "," +
     springLength + "," +
     springLengthVelocity + "," +
-    springLengthAcceleration + "," +
-    (energyKinetic * 1e-4) + "," + 
-    (energyPotential * 1e-4)
+    springLengthAcceleration
   );
 }
 
