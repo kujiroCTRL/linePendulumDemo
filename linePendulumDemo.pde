@@ -90,7 +90,7 @@ void setup(){
   
   screen = createGraphics(width, height);
   logFile = createWriter("pendulumData.csv");
-  logFile.println("Time,Angle,AngleVelocity,AngleAcceleration,Length,LengthVelocity,LengthAcceleration"); 
+  logFile.println("Tempo,Angolo,Velocità angolare,Accelerazione angolare,Lunghezza,Velocità di allungamento,Accelerazione di allungamento");
   
   update              = 1;
   pause               = 0;
@@ -138,7 +138,7 @@ void keyPressed(){
       update = 0;
       logFile.close();
       logFile = createWriter("pendulumData.csv");
-      logFile.println("Angle,AngleVelocity,AngleAcceleration,Length,LengthVelocity,LengthAcceleration");
+      logFile.println("Tempo,Angolo,Velocità angolare,Accelerazione angolare,Lunghezza,Velocità di allungamento,Accelerazione di allungamento");
       break;
     
     // Imposto la posizione del centro di massa all'equilibrio
@@ -365,6 +365,8 @@ void drawPendulum(){
   screen.circle(pivotCoordx, pivotCoordy, pivotRadius);
   
   if(displayForces == 1){
+      screen.strokeWeight(massRadius / 5);
+      
       // Disegno il vettore della forza di gravità
       screen.stroke(forceColor1);
       screen.line(massVirtualx, massVirtualy,
@@ -377,9 +379,14 @@ void drawPendulum(){
         screen.line(massVirtualx, massVirtualy,
           massVirtualx - zoomFactor / springLength * springConstant * (massCoordx - pivotCoordx), massVirtualy - zoomFactor / springLength * springConstant * (massCoordy - pivotCoordy)
         );
-      
-      // Disegno il vettore dell'attrito
       }
+
+      // Disegno il vettore della forza dissipante
+      screen.stroke(forceColor3);
+      screen.line(massVirtualx, massVirtualy,
+        massVirtualx - zoomFactor * frictionAngleConstant * springAngleVelocity * cos(springAngle) - zoomFactor * frictionLengthConstant * springLengthVelocity * sin(springAngle),
+        massVirtualy + zoomFactor * frictionAngleConstant * springAngleVelocity * sin(springAngle) - zoomFactor * frictionLengthConstant * springLengthVelocity * cos(springAngle)
+      );
   }
   
   screen.endDraw();

@@ -74,8 +74,8 @@ $$
  		&= g \cos\theta(t)
    		+ k v_\theta(t) ^ 2
  		+ \begin{cases}
-   			0 &  r(t) \lt r_0 \\
-   			- \frac k m (r(t) - r_0) & r(t) \geq r_0
+   			0 &  r(t) \lt R \\
+   			- \frac k m (r(t) - R) & r(t) \geq R
       		\end{cases}
 		- b_r v_r(t) \\
 	a_\theta(t+1)
@@ -119,7 +119,7 @@ Premendo i seguenti tasti è possibile modificare la simulazione:
 
 Inoltre premendo `m` o `M` il sistema scriverà sul file `pendulumData.csv` i parametri variabili del sistema su un file `.csv` (acronimo di comma-seperated-values, quindi valori separati da virgole)
 
-Le colonne in `pendulumData.csv` comprendono le misure dell'angolo della lenza rispetto la verticale (comprese velocità e accelerazione angolare) e le misure della distanza della massa dal pivot (comprese velocità e accelerazione)
+Le colonne in `pendulumData.csv` comprendono il numero di millisecondi passati dall'avvio della simulazione, le misure dell'angolo della lenza rispetto la verticale (comprese velocità e accelerazione angolare) e le misure della distanza della massa dal pivot (comprese velocità e accelerazione)
 
 Premendo invece `q`, `Q`, `e` oppure `E` la scrittura su file dei dati verrà interrotta
 
