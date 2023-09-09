@@ -1,10 +1,10 @@
-float massCoordy,
-      massCoordx,
-      massVirtualx,
-      massVirtualy,
+float massCoordY,
+      massCoordX,
+      massCordScreenX,
+      massCordScreenY,
       massRadius,
-      pivotCoordx,
-      pivotCoordy,
+      pivotCoordX,
+      pivotCoordY,
       pivotRadius;
 
 float energyKinetic,
@@ -13,7 +13,7 @@ float energyKinetic,
 
 color massColor,
       pivotColor,
-      springColor,
+      lineColor,
       backgroundColor,
       textColor,
       forceColor1,
@@ -21,21 +21,21 @@ color massColor,
       forceColor3;
 int   backgroundFading;
 
-float springLength,
-      springLengthVelocity,
-      springLengthAcceleration,
-      springAngle,
-      springAngleVelocity,
-      springAngleAcceleration;
+float lineLength,
+      lineLengthVelocity,
+      lineLengthAcceleration,
+      lineAngle,
+      lineAngleVelocity,
+      lineAngleAcceleration;
 
 float gravityConstant,
-      springConstant,
-      springLengthRest,
-      springLengthEquilibrium,
+      lineElasticConstant,
+      lineLengthRest,
+      lineLengthEquilibrium,
       massConstant,
       frictionLengthConstant,
       frictionAngleConstant,
-      timeConstant,
+      timeSimulationRate,
       zoomFactor;
 
 PGraphics screen;
@@ -43,35 +43,35 @@ PrintWriter logFile;
 PFont textFont;
 
 int update,
-    pause,
+    pauseSimulation,
     screenshotIndex,
     logBegin,
     displayForces;
 
-String modeCurrent;
+String dynamicsMode;
 
 void setup(){
   gravityConstant      = 981;
   massConstant         = 60 * 1e-3;
-  springConstant       = 40;
-  springLengthRest     = 55.5;
+  lineElasticConstant       = 40;
+  lineLengthRest     = 55.5;
   frictionLengthConstant
                        = 1;
   frictionAngleConstant
                        = .05;
   zoomFactor           = 10;
   
-  timeConstant         = 1e-5;
+  timeSimulationRate         = 1e-5;
   
-  springLengthEquilibrium
-                       = springLengthRest + (gravityConstant * massConstant) / springConstant;
+  lineLengthEquilibrium
+                       = lineLengthRest + (gravityConstant * massConstant) / lineElasticConstant;
   
   backgroundFading     = 255;
  
   applyPalette("EFFSANDZEROS");
   
-  pivotCoordx          = width / 2;
-  pivotCoordy          = height / 4;
+  pivotCoordX          = width / 2;
+  pivotCoordY          = height / 4;
   pivotRadius          = 20;
   
   resetPositionTo("EQUILIBRIUM");
@@ -81,7 +81,7 @@ void setup(){
   energyPotential      = 0;
   energyMeccanic       = 0;
   
-  modeCurrent = "ELASTIC";
+  dynamicsMode = "ELASTIC";
   
   massRadius           = 10;
   
@@ -93,7 +93,7 @@ void setup(){
   logFile.println("Tempo,Angolo,Velocità angolare,Accelerazione angolare,Lunghezza,Velocità di allungamento,Accelerazione di allungamento");
   
   update              = 1;
-  pause               = 0;
+  pauseSimulation               = 0;
   screenshotIndex     = 1;
   logBegin            = 0;
   displayForces       = 0;
@@ -103,13 +103,13 @@ void draw(){
   if(update == 1){
     updateEnergy();
     
-    for(int i = 0; i < (int)((1 / timeConstant) / frameRate); i++){  
-      if(springLength < springLengthRest){
-        if(modeCurrent != "FREEFALL")
-          modeCurrent = "FREEFALL";
+    for(int i = 0; i < (int)((1 / timeSimulationRate) / frameRate); i++){  
+      if(lineLength < lineLengthRest){
+        if(dynamicsMode != "FREEFALL")
+          dynamicsMode = "FREEFALL";
       } else
-        if(modeCurrent != "ELASTIC")
-          modeCurrent = "ELASTIC";
+        if(dynamicsMode != "ELASTIC")
+          dynamicsMode = "ELASTIC";
       updateDynamics();
     }
   }
@@ -155,8 +155,8 @@ void keyPressed(){
     // Fermo la simulazione
     case 'p' :
     case 'P' :
-      pause = 1 - pause;
-      logBegin = 1 - pause;
+      pauseSimulation = 1 - pauseSimulation;
+      logBegin = 1 - pauseSimulation;
       break;
     
     // Aumento il fattore di ingrandimento
@@ -215,61 +215,61 @@ void keyReleased(){
 void updateEnergy(){
   // Aggiorno l'assetto energetico del sistema
   energyKinetic = 
-   .5 * massConstant * sq(springLengthVelocity) + .5 * massConstant * sq(springAngleVelocity * springLength);
+   .5 * massConstant * sq(lineLengthVelocity) + .5 * massConstant * sq(lineAngleVelocity * lineLength);
   energyPotential =
-    massConstant * gravityConstant * (pivotCoordy - massCoordy);
+    massConstant * gravityConstant * (pivotCoordY - massCoordY);
   
-  if(modeCurrent == "ELASTIC")
-    energyPotential += .5 * springConstant * sq(springLength - springLengthRest);
+  if(dynamicsMode == "ELASTIC")
+    energyPotential += .5 * lineElasticConstant * sq(lineLength - lineLengthRest);
   
   energyMeccanic =
     energyKinetic + energyPotential;
 }
 
 void updateDynamics(){
-  if(pause == 1)
-    modeCurrent = "NONE";
+  if(pauseSimulation == 1)
+    dynamicsMode = "NONE";
     
-  switch(modeCurrent){
+  switch(dynamicsMode){
     // In elasticità l'accelerazione radiale è data dalla legge di Hook per le forze elastiche
     case "ELASTIC" : 
-      springAngleAcceleration   =
-        - (gravityConstant / springLength) * sin(springAngle)
-        - (2 / springLength) * springLengthVelocity * springAngleVelocity;
+      lineAngleAcceleration   =
+        - (gravityConstant / lineLength) * sin(lineAngle)
+        - (2 / lineLength) * lineLengthVelocity * lineAngleVelocity;
         
-      springLengthAcceleration  =
-        - (springConstant / massConstant) * (springLength - springLengthRest)
-        + gravityConstant * cos(springAngle)
-        + springLength * sq(springAngleVelocity);
+      lineLengthAcceleration  =
+        - (lineElasticConstant / massConstant) * (lineLength - lineLengthRest)
+        + gravityConstant * cos(lineAngle)
+        + lineLength * sq(lineAngleVelocity);
       
-      springLengthEquilibrium   =
-        springLengthRest + (gravityConstant * massConstant) / springConstant;
+      lineLengthEquilibrium   =
+        lineLengthRest + (gravityConstant * massConstant) / lineElasticConstant;
       break;
 
     // In tensione l'accelerazione radiale è nulla in quanto la lenza è inestensibile
     case "TENSION" : 
-      springAngleAcceleration  =
-        - (gravityConstant / springLength) * sin(springAngle)
-        - (2 / springLength) * springLengthVelocity * springAngleVelocity;
+      lineAngleAcceleration  =
+        - (gravityConstant / lineLength) * sin(lineAngle)
+        - (2 / lineLength) * lineLengthVelocity * lineAngleVelocity;
         
-      springLengthAcceleration  = 0;
-      springLengthVelocity      = 0;
+      lineLengthAcceleration  = 0;
+      lineLengthVelocity      = 0;
       
-      springLengthEquilibrium   =
-        springLengthRest + (gravityConstant * massConstant) / springConstant;
+      lineLengthEquilibrium   =
+        lineLengthRest + (gravityConstant * massConstant) / lineElasticConstant;
       break;
     
     // In caduta libera è presente solo la forza di gravità che punta verso il basso
     case "FREEFALL" :
-      springAngleAcceleration  =
-        - (gravityConstant / springLength) * sin(springAngle)
-        - (2 / springLength) * springLengthVelocity * springAngleVelocity;
+      lineAngleAcceleration  =
+        - (gravityConstant / lineLength) * sin(lineAngle)
+        - (2 / lineLength) * lineLengthVelocity * lineAngleVelocity;
       
-      springLengthAcceleration  =
-        gravityConstant * cos(springAngle)
-        + springLength * sq(springAngleVelocity);
+      lineLengthAcceleration  =
+        gravityConstant * cos(lineAngle)
+        + lineLength * sq(lineAngleVelocity);
       
-      springLengthEquilibrium = 0;
+      lineLengthEquilibrium = 0;
     break;
     case "NONE" :
       return;
@@ -278,61 +278,61 @@ void updateDynamics(){
   }
   
   // Aggiungo dei termini dissipativi per le accelerazioni
-  springLengthAcceleration -= frictionLengthConstant * springLengthVelocity; 
-  springAngleAcceleration  -= frictionAngleConstant  * springAngleVelocity;
+  lineLengthAcceleration -= frictionLengthConstant * lineLengthVelocity; 
+  lineAngleAcceleration  -= frictionAngleConstant  * lineAngleVelocity;
   
-  springLengthVelocity =
-    springLengthVelocity + springLengthAcceleration * timeConstant;
-  springAngleVelocity =
-    springAngleVelocity + springAngleAcceleration * timeConstant;
+  lineLengthVelocity =
+    lineLengthVelocity + lineLengthAcceleration * timeSimulationRate;
+  lineAngleVelocity =
+    lineAngleVelocity + lineAngleAcceleration * timeSimulationRate;
   
   // Aggiorno l'angolo della lenza
-  springAngle =
-    springAngle + springAngleVelocity * timeConstant;
-  springLength =
-    springLength + springLengthVelocity * timeConstant;
+  lineAngle =
+    lineAngle + lineAngleVelocity * timeSimulationRate;
+  lineLength =
+    lineLength + lineLengthVelocity * timeSimulationRate;
   
   // Aggiorno la posizione del centro di massa
-  massCoordx =
-    pivotCoordx + springLength * sin(springAngle);
-  massCoordy =
-    pivotCoordy + springLength * cos(springAngle);
+  massCoordX =
+    pivotCoordX + lineLength * sin(lineAngle);
+  massCoordY =
+    pivotCoordY + lineLength * cos(lineAngle);
   
   // Aggiorno la posizione del centro di massa relativa alla finestra  
-  if(massVirtualx > width || massVirtualy > height || massVirtualx < 0 || massVirtualy < 0)
+  if(massCordScreenX > width || massCordScreenY > height || massCordScreenX < 0 || massCordScreenY < 0)
     zoomFactor /= 2;
   
-  massVirtualx = (massCoordx - pivotCoordx) * zoomFactor + pivotCoordx;
-  massVirtualy = (massCoordy - pivotCoordy) * zoomFactor + pivotCoordy;
+  massCordScreenX = (massCoordX - pivotCoordX) * zoomFactor + pivotCoordX;
+  massCordScreenY = (massCoordY - pivotCoordY) * zoomFactor + pivotCoordY;
 }
 
 void resetPositionTo(String string){
   switch(string){
     case "MOUSE" :
-      massCoordx = min((mouseX - pivotCoordx) / zoomFactor + pivotCoordx, width);
-      massCoordy = (mouseY - pivotCoordy) / zoomFactor + pivotCoordy;
+      massCoordX = min((mouseX - pivotCoordX) / zoomFactor + pivotCoordX, width);
+      massCoordY = (mouseY - pivotCoordY) / zoomFactor + pivotCoordY;
       
       break;
     case "EQUILIBRIUM" :
-      massCoordx = pivotCoordx;
-      massCoordy = pivotCoordy + springLengthEquilibrium;
+      massCoordX = pivotCoordX;
+      massCoordY = pivotCoordY + lineLengthEquilibrium;
       
       break;
   }
       
-  springLength =
-    sqrt(sq(pivotCoordx - massCoordx) + sq(pivotCoordy - massCoordy));
-  springLengthVelocity = 0;
-  springLengthAcceleration = 0;
+  lineLength =
+    sqrt(sq(pivotCoordX - massCoordX) + sq(pivotCoordY - massCoordY));
+  lineLengthVelocity = 0;
+  lineLengthAcceleration = 0;
   
-  springAngle = atan2(massCoordx - pivotCoordx, massCoordy - pivotCoordy);
-  springAngleVelocity = 0;
-  springAngleAcceleration = 0;
+  lineAngle = atan2(massCoordX - pivotCoordX, massCoordY - pivotCoordY);
+  lineAngleVelocity = 0;
+  lineAngleAcceleration = 0;
   
-  massCoordx =
-    pivotCoordx + springLength * sin(springAngle);
-  massCoordy =
-    pivotCoordy + springLength * cos(springAngle);
+  massCoordX =
+    pivotCoordX + lineLength * sin(lineAngle);
+  massCoordY =
+    pivotCoordY + lineLength * cos(lineAngle);
 }
 
 void drawPendulum(){
@@ -343,49 +343,49 @@ void drawPendulum(){
   screen.rect(0, 0, width, height);
   
   // Disegno la lenza
-  screen.stroke(springColor, 255);
+  screen.stroke(lineColor, 255);
   screen.strokeWeight(massRadius / 10);
-  screen.fill(springColor, 255);
-  screen.line(pivotCoordx, pivotCoordy, massVirtualx, massVirtualy);
+  screen.fill(lineColor, 255);
+  screen.line(pivotCoordX, pivotCoordY, massCordScreenX, massCordScreenY);
   
   // Disegno un arco con raggio pari alla lunghezza di riposo della lenza
-  screen.stroke(springColor, 255);
-  screen.fill(springColor, 0);
+  screen.stroke(lineColor, 255);
+  screen.fill(lineColor, 0);
   screen.strokeWeight(massRadius / 10);
-  screen.arc(pivotCoordx, pivotCoordy, 2 * springLengthRest * zoomFactor, 2 * springLengthRest * zoomFactor, - TAU, - PI);
+  screen.arc(pivotCoordX, pivotCoordY, 2 * lineLengthRest * zoomFactor, 2 * lineLengthRest * zoomFactor, - TAU, - PI);
   
   // Disegno la massa
-  screen.stroke(springColor, 0);
+  screen.stroke(lineColor, 0);
   screen.fill(massColor, 255);
-  screen.circle(massVirtualx, massVirtualy, massRadius);
+  screen.circle(massCordScreenX, massCordScreenY, massRadius);
   
   // Disegno il pivot
-  screen.stroke(springColor, 255);
+  screen.stroke(lineColor, 255);
   screen.fill(pivotColor, 255);
-  screen.circle(pivotCoordx, pivotCoordy, pivotRadius);
+  screen.circle(pivotCoordX, pivotCoordY, pivotRadius);
   
   if(displayForces == 1){
       screen.strokeWeight(massRadius / 5);
       
       // Disegno il vettore della forza di gravità
       screen.stroke(forceColor1);
-      screen.line(massVirtualx, massVirtualy,
-        massVirtualx, massVirtualy + zoomFactor * massConstant * gravityConstant
+      screen.line(massCordScreenX, massCordScreenY,
+        massCordScreenX, massCordScreenY + zoomFactor * massConstant * gravityConstant
       );
      
       // Disegno il vettore della tensione (se presente) 
-      if((modeCurrent == "NONE" && springLength >= springLengthRest) || (modeCurrent != "FREEFALL" && modeCurrent != "NONE")){
+      if((dynamicsMode == "NONE" && lineLength >= lineLengthRest) || (dynamicsMode != "FREEFALL" && dynamicsMode != "NONE")){
         screen.stroke(forceColor2);
-        screen.line(massVirtualx, massVirtualy,
-          massVirtualx - zoomFactor / springLength * springConstant * (massCoordx - pivotCoordx), massVirtualy - zoomFactor / springLength * springConstant * (massCoordy - pivotCoordy)
+        screen.line(massCordScreenX, massCordScreenY,
+          massCordScreenX - zoomFactor / lineLength * lineElasticConstant * (massCoordX - pivotCoordX), massCordScreenY - zoomFactor / lineLength * lineElasticConstant * (massCoordY - pivotCoordY)
         );
       }
 
       // Disegno il vettore della forza dissipante
       screen.stroke(forceColor3);
-      screen.line(massVirtualx, massVirtualy,
-        massVirtualx - zoomFactor * frictionAngleConstant * springAngleVelocity * cos(springAngle) - zoomFactor * frictionLengthConstant * springLengthVelocity * sin(springAngle),
-        massVirtualy + zoomFactor * frictionAngleConstant * springAngleVelocity * sin(springAngle) - zoomFactor * frictionLengthConstant * springLengthVelocity * cos(springAngle)
+      screen.line(massCordScreenX, massCordScreenY,
+        massCordScreenX - zoomFactor * frictionAngleConstant * lineAngleVelocity * cos(lineAngle) - zoomFactor * frictionLengthConstant * lineLengthVelocity * sin(lineAngle),
+        massCordScreenY + zoomFactor * frictionAngleConstant * lineAngleVelocity * sin(lineAngle) - zoomFactor * frictionLengthConstant * lineLengthVelocity * cos(lineAngle)
       );
   }
   
@@ -398,19 +398,19 @@ void printInfo(){
   // Scrivo su file i parametri variabili del sistema
   logFile.println(
     millis() + "," +
-    degrees(springAngle) + "," +
-    degrees(springAngleVelocity) + "," +
-    degrees(springAngleAcceleration) + "," +
-    springLength + "," +
-    springLengthVelocity + "," +
-    springLengthAcceleration
+    degrees(lineAngle) + "," +
+    degrees(lineAngleVelocity) + "," +
+    degrees(lineAngleAcceleration) + "," +
+    lineLength + "," +
+    lineLengthVelocity + "," +
+    lineLengthAcceleration
   );
 }
 
 void applyPalette(String paletteName){
   switch(paletteName){
     case "STRAVAGANZALIGHT" :
-      springColor          = randomColorLuminance(127);
+      lineColor          = randomColorLuminance(127);
       pivotColor           = randomColorLuminance(15);
       massColor            = randomColorLuminance(255);
       backgroundColor      = randomColorLuminance(31);
@@ -421,7 +421,7 @@ void applyPalette(String paletteName){
 
       break;
     case "STRAVAGANZADARK" :
-      springColor          = randomColorLuminance(31);
+      lineColor          = randomColorLuminance(31);
       pivotColor           = randomColorLuminance(255);
       massColor            = randomColorLuminance(15);
       backgroundColor      = randomColorLuminance(127);
@@ -432,7 +432,7 @@ void applyPalette(String paletteName){
 
       break;
     case "EFFSANDZEROS" :
-      springColor          = 127;
+      lineColor          = 127;
       pivotColor           = 255;
       massColor            = 0;
       backgroundColor      = 255;
@@ -444,7 +444,7 @@ void applyPalette(String paletteName){
       break;
     case "ZEROSANDEFFS" :
     default :  
-      springColor          = 127;
+      lineColor          = 127;
       pivotColor           = 0;
       massColor            = 255;
       backgroundColor      = 0;
